@@ -1,0 +1,5 @@
+---
+my_domain: dmshch.ru
+ssh_key_file: ~/secrets/netology
+ssh_user: ubuntu
+proxy_addr: http://nginx.{{ my_domain }}:3128

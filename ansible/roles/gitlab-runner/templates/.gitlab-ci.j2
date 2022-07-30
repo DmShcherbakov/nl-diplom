@@ -1,0 +1,8 @@
+stages:
+  - deploy
+deploy:
+  stage: deploy
+  script:
+    - rsync -avz wp-content/ root@app.{{ my_domain }}:/usr/share/wordpress/wp-content -e "ssh -o StrictHostKeyChecking=no"
+  only:
+    - tags

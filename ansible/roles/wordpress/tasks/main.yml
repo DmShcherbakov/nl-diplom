@@ -1,0 +1,43 @@
+---
+# tasks file for wordpress
+- name: Install apache and wordpress
+  become: true
+  apt:
+    update_cache: true
+    state: present
+    name:
+    - apache2
+    - wordpress
+ 
+- name: Copy apache config
+  become: true
+  copy:
+    src: wordpress.conf
+    dest: /etc/apache2/sites-available/wordpress.conf
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Copy Wordpress config from template
+  become: true
+  template:
+    src: wp-config.j2
+    dest: /usr/share/wordpress/wp-config.php
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Enable rewrite
+  shell: sudo a2enmod rewrite
+
+- name: Enable site Wordpress
+  shell: sudo a2ensite wordpress
+
+- name: Disable default page
+  shell: sudo a2dissite 000-default
+
+- name: Restart apache
+  become: true
+  service:
+    name: apache2
+    state: restarted

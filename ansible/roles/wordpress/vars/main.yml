@@ -1,0 +1,5 @@
+---
+# vars file for wordpress
+db_host: "db01.{{ my_domain }}"
+db_user: "wordpress"
+db_password: "wordpress"

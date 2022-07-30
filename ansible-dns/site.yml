@@ -1,0 +1,31 @@
+---
+- name: Update DNS record
+  hosts: dns
+  gather_facts: no
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+  - name:  Wait for system to become reachable
+    wait_for_connection:
+      timeout: 900
+
+  - name: install bind and dnspython for zone update
+    become: true
+    apt:
+      update_cache: true
+      name:
+      - bind9
+      - python3-dnspython
+      state: present
+    timeout: 600
+
+  - name: dnsupdate
+    nsupdate:
+      key_name: "rndc-key"
+      key_secret: "{{ rndc_key_vt }}"
+      server: "ns.dmshch.ru"
+      zone: "dmshch.ru"
+      record: "@"
+      value: "{{ ansible_host }}"
+      ttl: 120

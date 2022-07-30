@@ -1,0 +1,68 @@
+# Sample config for Prometheus.
+
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  external_labels:
+      monitor: 'netology'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: ['localhost:9093']
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+  - "node.rules.yml"
+  - "task.rules.yml"
+
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: monitoring
+    # If prometheus-node-exporter is installed, grab stats about the local
+    # machine by default.
+    static_configs:
+      - targets: ['localhost:9100']
+
+  - job_name: nginx
+    static_configs:
+      - targets: ['nginx.{{ my_domain }}:9100']
+
+  - job_name: wordpress
+    static_configs:
+      - targets: ['app.{{ my_domain }}:9100']
+
+  - job_name: gitlab-server
+    static_configs:
+      - targets: ['gitlab.{{ my_domain }}:9100']
+
+  - job_name: gitlab-runner
+    static_configs:
+      - targets: ['gitlab-runner.{{ my_domain }}:9100']
+
+  - job_name: db01
+    static_configs:
+      - targets: ['db01.{{ my_domain }}:9100']
+
+  - job_name: db02
+    static_configs:
+      - targets: ['db02.{{ my_domain }}:9100']
+

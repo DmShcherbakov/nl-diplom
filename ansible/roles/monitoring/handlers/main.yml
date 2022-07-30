@@ -1,0 +1,22 @@
+---
+# handlers file for monitoring
+- name: Restart and enabling Prometheus
+  become: true
+  systemd:
+    name: prometheus
+    enabled: true
+    state: restarted
+
+- name: Restart and enabling Alertmanager
+  become: true
+  systemd:
+    name: alertmanager
+    enabled: true
+    state: restarted
+
+- name: Restart and enabling Grafana
+  become: true
+  systemd:
+    name: grafana-server
+    enabled: true
+    state: restarted

@@ -1,0 +1,11 @@
+127.0.1.1 {{ ansible_hostname }}.{{ my_domain }} {{ ansible_hostname }}
+127.0.0.1 localhost
+
+192.168.1.100	nginx.{{ my_domain }}
+192.168.1.10	app.{{ my_domain }} www.{{ my_domain }}
+192.168.1.11	gitlab.{{ my_domain }}
+192.168.1.12	grafana.{{ my_domain }} prometheus.{{ my_domain }} alertmanager.{{ my_domain }} monitoring.{{ my_domain }}
+192.168.1.17	gitlab-runner.{{ my_domain }}
+192.168.1.20	db01.{{ my_domain }}
+192.168.1.25	db02.{{ my_domain }}
+

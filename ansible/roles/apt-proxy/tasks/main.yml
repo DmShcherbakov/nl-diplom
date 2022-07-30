@@ -1,0 +1,9 @@
+---
+# tasks file for apt-proxy
+- name: Copy proxy config file
+  become: true
+  template:
+    src: 90curtin-aptproxy.j2
+    dest: /etc/apt/apt.conf.d/90curtin-aptproxy
+    owner: root
+    group: root

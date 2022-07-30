@@ -1,0 +1,87 @@
+---
+# tasks file for nginx
+- name: install nginx certbot and squid
+  become: true
+  apt:
+    update_cache: true
+    name:
+    - nginx
+    - certbot
+    - squid
+    state: present
+
+- name: Copy config without certificates paths
+  become: true
+  copy:
+    src: default_before
+    dest: /etc/nginx/sites-available/default
+    owner: "root"
+    group: "root"
+- name: restart nginx
+  become: true
+  service:
+    enabled: true
+    state: restarted
+    name: nginx
+
+- name: check cert availability
+  become: true
+  shell: certbot certificates -d "{{ my_domain }}"
+  register: cert_avail
+
+#    certbot certonly --test-cert -d "{{ my_domain }}" -d www."{{ my_domain }}" -d gitlab."{{ my_domain }}" -d grafana."{{ my_domain }}" -d prometheus."{{ my_domain }}" -d alertmanager."{{ my_domain }}" --email help@"{{ my_domain }}" --agree-tos --webroot --webroot-path /var/www/html --non-interactive
+
+- name: get stage cert
+  become: true
+  shell: |
+    certbot certonly -d "{{ my_domain }}" -d www."{{ my_domain }}" -d gitlab."{{ my_domain }}" -d grafana."{{ my_domain }}" -d prometheus."{{ my_domain }}" -d alertmanager."{{ my_domain }}" --email help@"{{ my_domain }}" --agree-tos --webroot --webroot-path /var/www/html --non-interactive
+    echo "0 0 * * 1,4 root /usr/bin/certbot renew --noninteractive" >> /etc/crontab
+  when: cert_avail["stdout_lines"] | length <= 6
+
+- name: Copy default config with certificates paths
+  template:
+    src: default.j2
+    dest: /etc/nginx/sites-available/default
+    owner: root
+    group: root
+  become: true
+
+- name: Copy sites proxy config
+  template:
+    src: netology.j2
+    dest: /etc/nginx/sites-available/netology.conf
+    owner: root
+    group: root
+  become: true
+
+- name: Enabling config
+  become: true
+  file:
+    src: /etc/nginx/sites-available/netology.conf
+    dest: /etc/nginx/sites-enabled/netology.conf
+    state: link
+
+- name: Copy nginx config with ssh streams to servers
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+  become: true
+
+- name: Copy squid config
+  copy:
+    src: squid.conf
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: root
+  become: true
+  notify: restart squid
+
+- name: restart nginx
+  become: true
+  service:
+    enabled: true
+    state: restarted
+    name: nginx
+

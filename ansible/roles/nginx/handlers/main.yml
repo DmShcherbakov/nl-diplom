@@ -1,0 +1,8 @@
+---
+# handlers file for nginx
+- name: restart squid
+  become: true
+  service:
+    enabled: true
+    state: restarted
+    name: squid

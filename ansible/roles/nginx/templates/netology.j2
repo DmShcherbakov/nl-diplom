@@ -1,0 +1,79 @@
+upstream www {
+  server 192.168.1.10:80;
+}
+
+upstream gitlab {
+  server 192.168.1.11:80;
+}
+
+upstream grafana {
+  server 192.168.1.12:3000;
+}
+
+upstream prometheus {
+  server 192.168.1.12:9090;
+}
+
+upstream alertmanager {
+  server 192.168.1.12:9093;
+}
+
+server {
+        server_name www.{{ my_domain }};
+	listen 443;
+        location / {
+            proxy_pass http://www;
+            proxy_redirect     off;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+}
+
+server {
+        server_name gitlab.{{ my_domain }};
+	listen 443;
+        location / {
+            proxy_pass http://gitlab;
+            proxy_redirect     off;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+}
+
+server {
+        server_name grafana.{{ my_domain }};
+	listen 443;
+        location / {
+            proxy_pass http://grafana;
+            proxy_redirect     off;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+}
+
+server {
+        server_name prometheus.{{ my_domain }};
+	listen 443;
+        location / {
+            proxy_pass http://prometheus;
+            proxy_redirect     off;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+}
+
+server {
+        server_name alertmanager.{{ my_domain }};
+	listen 443;
+        location / {
+            proxy_pass http://alertmanager;
+            proxy_redirect     off;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+}

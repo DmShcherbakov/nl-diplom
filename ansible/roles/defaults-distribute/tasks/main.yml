@@ -1,0 +1,44 @@
+---
+# tasks file for hosts-distribute
+- name: Copy hosts file for local resolve
+  become: true
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+
+- name: Add a http_proxy variable.
+  become: true
+  lineinfile:
+    dest: /etc/environment
+    regexp: ^http_proxy= 
+    line: http_proxy="http://nginx.{{ my_domain }}:3128"
+  when: ansible_hostname != "nginx"
+
+- name: Add a https_proxy variable.
+  become: true
+  lineinfile:
+    dest: /etc/environment
+    regexp: ^https_proxy= 
+    line: https_proxy="http://nginx.{{ my_domain }}:3128"
+  when: ansible_hostname != "nginx"
+
+- name: Set timezone
+  become: true
+  shell: timedatectl set-timezone Europe/Moscow
+
+- name: Installing Node Exporter
+  become: true
+  apt:
+    update_cache: true
+    name: prometheus-node-exporter
+    state: present
+
+- name: Enable node-exporter
+  become: true
+  systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: yes
+

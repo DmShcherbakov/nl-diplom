@@ -1,0 +1,154 @@
+---
+# tasks file for monitoring
+- name: Installing base components
+  become: true
+  apt:
+    name:
+    - prometheus
+    - prometheus-node-exporter
+    state: present
+    update_cache: true
+
+- name: Alertmanager install and configure
+  block:
+  - name: Download alertmanager
+    get_url:
+#      url: https://github.com/prometheus/alertmanager/releases/download/v0.24.0/alertmanager-0.24.0.linux-amd64.tar.gz
+      url: http://ns.dmshch.ru/alertmanager-0.24.0.linux-amd64.tar.gz
+      dest: /tmp/alertmanager-0.24.0.linux-amd64.tar.gz
+      use_proxy: true
+    timeout: 120
+
+  - name: Unpack alertmanager
+    unarchive:
+      src: /tmp/alertmanager-0.24.0.linux-amd64.tar.gz
+      dest: /tmp
+      remote_src: true
+
+  - name: Add user for alertmanager
+    become: true
+    user:
+      name: alertmanager
+      shell: /bin/false
+
+  - name: Copy main executable file
+    become: true
+    copy:
+      src: /tmp/alertmanager-0.24.0.linux-amd64/alertmanager
+      dest: /usr/local/bin/alertmanager
+      owner: alertmanager
+      group: alertmanager
+      mode: u+x
+      remote_src: true
+
+  - name: Copy amtool file
+    become: true
+    copy:
+      src: /tmp/alertmanager-0.24.0.linux-amd64/amtool
+      dest: /usr/local/bin/amtool
+      owner: alertmanager
+      group: alertmanager
+      mode: u+x
+      remote_src: true
+
+  - name: Create a directory for alertmanager config files
+    become: true
+    file:
+      path: /etc/alertmanager
+      owner: alertmanager
+      group: alertmanager
+      state: directory
+
+  - name: Create an alertmanager storage directory
+    become: true
+    file:
+      path: /var/lib/prometheus/alertmanager
+      owner: alertmanager
+      group: alertmanager
+      state: directory
+
+  - name: Copy alertmanager config file
+    become: true
+    copy:
+      src: /tmp/alertmanager-0.24.0.linux-amd64/alertmanager.yml
+      dest: /etc/alertmanager/alertmanager.yml
+      remote_src: true
+
+  - name: Copy systemd file
+    become: true
+    copy:
+      src: alertmanager.service
+      dest: /etc/systemd/system/alertmanager.service
+
+  notify: Restart and enabling Alertmanager
+
+- name: Grafana install and configure
+  block:
+  - name: Download grafana distrib
+    get_url:
+      url: http://ns.dmshch.ru/grafana-enterprise_9.0.5_amd64.deb
+      dest: /tmp/grafana-enterprise_9.0.5_amd64.deb
+      use_proxy: true
+
+  - name: Install Grafana from deb
+    become: true
+    apt:
+      deb: /tmp/grafana-enterprise_9.0.5_amd64.deb
+
+  - name: Modify grafana configuration file to define dashboards directory
+    become: true
+    lineinfile:
+      dest: /etc/grafana/grafana.ini
+      regexp: "^;default_home_dashboard_path"
+      line: "default_home_dashboard_path = /var/lib/grafana/dashboards/home.json"
+
+  - name: Create grafana dashboards directory
+    become: true
+    file:
+      path: /var/lib/grafana/dashboards
+      owner: grafana
+      group: grafana
+      state: directory
+
+  - name: Copy node dashboard
+    become: true
+    copy:
+      src: grafana/node-exporter.json
+      dest: /var/lib/grafana/dashboards/node-exporter.json
+
+  - name: Copy complex dashboard
+    become: true
+    copy:
+      src: grafana/Complex_monitoring.json
+      dest: /var/lib/grafana/dashboards/home.json
+
+  - name: Copy datasource
+    become: true
+    copy:
+      src: grafana/gr_prometheus.yaml
+      dest: /etc/grafana/provisioning/datasources/prometheus.yaml
+
+  - name: Copy dashboard provision
+    become: true
+    copy:
+      src: grafana/dash_prov.yaml
+      dest: /etc/grafana/provisioning/dashboards/prometheus.yaml
+
+  notify: Restart and enabling Grafana
+
+- name: Prometheus configure
+  block:
+  - name: Copy prometheus config
+    become: true
+    template:
+      src: prometheus.j2
+      dest: /etc/prometheus/prometheus.yml
+      owner: root
+      group: root
+
+  - name: Copy prometheus node rules
+    become: true
+    copy:
+      src: node.rules.yml
+      dest: /etc/prometheus/node.rules.yml
+  notify: Restart and enabling Prometheus

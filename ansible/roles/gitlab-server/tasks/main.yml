@@ -1,0 +1,62 @@
+---
+# tasks file for gitlab
+- name: Installing Gitlab free version
+  become: true
+  apt:
+    name:
+      - gitlab-ce
+    state: present
+    update_cache: true
+  timeout: 3600
+
+- name: Modify configuration file to insert external url
+  become: true
+  lineinfile:
+    dest: /etc/gitlab/gitlab.rb
+    regexp: "^external_url "
+    line: "external_url 'http://gitlab.{{ my_domain }}'"
+
+- name: Reconfiguring Gitlab
+  become: true
+  shell: gitlab-ctl reconfigure
+  timeout: 3600
+
+- name: get the initial root password
+  become: true
+  shell: |
+    grep 'Password:' /etc/gitlab/initial_root_password | sed -e 's/Password\: \(.*\)/\1/'
+  register: initial_root_password
+
+- name: display initial password for the first login
+  debug: msg="Use '{{ initial_root_password.stdout }}' for the first login"
+
+- name: delegate password to runner
+  set_fact:
+    init_root_pw="{{ initial_root_password.stdout }}"
+  delegate_facts: true
+  delegate_to: 'gitlab-runner'
+
+- name: Set api token
+  become: true
+  shell: |
+    gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api], name: 'Automation token'); token.set_token('netology2035netology'); token.save!"
+
+- name: Create a GitLab Project
+  gitlab_project:
+    api_url: http://gitlab.{{ my_domain }}/
+    api_token: "netology2035netology"
+    name: dmshch-netology
+    initialize_with_readme: true
+    shared_runners_enabled: true
+    validate_certs: false
+
+- name: get token for runner register
+  become: true
+  shell: gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token"
+  register: runner_token_out
+
+- name: setting variable
+  set_fact:
+    runner_token="{{ runner_token_out.stdout }}"
+  delegate_facts: true
+  delegate_to: 'gitlab-runner'

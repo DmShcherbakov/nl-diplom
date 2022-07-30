@@ -1,0 +1,78 @@
+---
+# tasks file for gitlab
+- name: Installing Gitlab-runner
+  become: true
+  apt:
+    update_cache: true
+    name: gitlab-runner
+    state: present
+  timeout: 3600
+
+- name: Modify configuration file to run from root
+  become: true
+  lineinfile:
+    dest: /lib/systemd/system/gitlab-runner.service
+    regexp: "--user gitlab-runner"
+    line: 'Environment="DAEMON_ARGS=run --working-directory /var/lib/gitlab-runner --config /etc/gitlab-runner/config.toml --service gitlab-runner --syslog"'
+  register: run_conf
+
+- name: Restarting gitlab-runner service
+  become: true
+  systemd:
+    daemon_reload: true
+    name: gitlab-runner
+    state: restarted
+  when: run_conf is changed
+
+#- name: debug runner_token
+#  debug: msg="{{ runner_token }}"
+
+- name: Runner register
+  become: true
+  shell: gitlab-runner register --non-interactive --url http://gitlab."{{ my_domain }}" --registration-token "{{ runner_token }}" --name netology-runner --executor shell  --shell bash
+
+- name: Generating ssh keys
+  become: true
+  openssh_keypair:
+    group: root
+    owner: root
+    path: /root/.ssh/id_rsa
+  register: ssh_keys
+
+- name: deploy keys on wordpress server
+  become: true
+  authorized_key: user=root key="{{ ssh_keys.public_key }}"
+  delegate_to: "app"
+
+- name: cloning git repository from gitlab to homedir
+  expect:
+    chdir: /tmp
+    command: git clone http://root@gitlab.{{ my_domain }}/root/dmshch-netology.git
+    responses:
+      (?i)Password for 'http://root@gitlab.dmshch.ru': "{{ init_root_pw }}"
+
+- name: Create dir for Wordpress changes
+  file:
+    path: /tmp/dmshch-netology/wp-content
+    state: directory
+
+- name: Put gitlab-ci into repository
+  template:
+    src: .gitlab-ci.j2
+    dest: /tmp/dmshch-netology/.gitlab-ci.yml
+
+- name: Commit changes
+  shell:
+    chdir: /tmp/dmshch-netology
+    cmd: |
+      echo "test" > wp-content/test.txt
+      git add .gitlab-ci.yml
+      git add wp-content/test.txt
+      git commit -a -m "Create workaround"
+
+- name: Pushing changes to gitlab
+  expect:
+    chdir: /tmp/dmshch-netology/
+    command: git push
+    responses:
+      (?i)Password for 'http://root@gitlab.dmshch.ru': "{{ init_root_pw }}"

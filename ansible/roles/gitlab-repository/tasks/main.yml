@@ -1,0 +1,21 @@
+---
+# tasks file for gitlab
+- name: Copy Gitlab repository installation script
+  copy:
+    src: script.deb.sh
+    dest: /tmp/script.deb.sh
+
+- name: Running Gitlab repository installation script
+  become: true
+  shell: |
+    export https_proxy="{{ proxy_addr }}"
+    bash /tmp/script.deb.sh
+
+- name: Installing dependencies for ansible gitlab modules
+  become: true
+  apt:
+    update_cache: true
+    name:
+    - python3-gitlab
+    - python3-pexpect
+    state: present

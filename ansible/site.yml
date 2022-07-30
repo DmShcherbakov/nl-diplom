@@ -1,0 +1,56 @@
+---
+# Installing Nginx-server as a proxy between LAN servers and Internet in both direction
+- hosts: nginx
+  gather_facts: false
+  tags: nginx
+  roles:
+    - wait-for-reach
+
+- hosts: nginx
+  tags: nginx
+  roles:
+    - defaults-distribute
+    - nginx
+
+# Configuring apt on all servers exclude Nginx to use proxy
+- hosts: all:!nginx
+  tags: defaults
+  roles:
+    - apt-proxy
+    - defaults-distribute
+
+# Configuring MySql cluster
+- hosts: mysql
+  tags: mysql
+  roles:
+    - mysql
+
+# Installing and preconfiguring Wordpress
+- hosts: wordpress
+  tags: wp
+  roles:
+    - wordpress
+
+# Install Gitlab
+- hosts: gitlab
+  tags: gitlab-rep,gitlab
+  roles:
+    - gitlab-repository
+
+- hosts: gitlab-server
+  gather_facts: false
+  tags: gitlab-srv,gitlab
+  roles:
+    - gitlab-server
+
+- hosts: gitlab-runner
+  gather_facts: false
+  tags: gitlab-run,gitlab
+  roles:
+    - gitlab-runner
+
+# Install monitoring stack
+- hosts: monitoring
+  tags: mon
+  roles:
+    - monitoring
